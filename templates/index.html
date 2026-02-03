@@ -13,8 +13,10 @@
 
         body {
             font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: #1a1a2e;
             overflow: hidden;
+            margin: 0;
+            padding: 0;
         }
 
         #container {
@@ -26,6 +28,16 @@
         #canvas-container {
             width: 100%;
             height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        
+        #canvas-container canvas {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
         }
 
         #controls {
@@ -133,6 +145,8 @@
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
+        console.log('Three.js loaded successfully');
+
         // Scene setup
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x1a1a2e);
@@ -144,7 +158,14 @@
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
-        document.getElementById('canvas-container').appendChild(renderer.domElement);
+        
+        const canvasContainer = document.getElementById('canvas-container');
+        if (!canvasContainer) {
+            console.error('canvas-container element not found!');
+        } else {
+            canvasContainer.appendChild(renderer.domElement);
+            console.log('Canvas added to container');
+        }
 
         // Lighting
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
