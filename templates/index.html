@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive 4D Hypercube</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+        }
+
+        #container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        #canvas-container {
+            width: 100%;
+            height: 100%;
+        }
+
+        #controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+        }
+
+        #controls h2 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 18px;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .dimension-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .dim-btn {
+            padding: 10px 15px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .dim-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .dim-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .info {
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            font-size: 12px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .info strong {
+            color: #333;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="canvas-container"></div>
+        <div id="controls">
+            <h2>🎲 4D Hypercube Controls</h2>
+            <div class="control-group">
+                <label>Active Rotation Dimension:</label>
+                <div class="dimension-buttons">
+                    <button class="dim-btn active" data-dim="0">X-Y</button>
+                    <button class="dim-btn" data-dim="1">X-Z</button>
+                    <button class="dim-btn" data-dim="2">X-W</button>
+                    <button class="dim-btn" data-dim="3">Y-Z</button>
+                </div>
+            </div>
+            <div class="info">
+                <strong>Instructions:</strong><br>
+                • Click and drag to rotate<br>
+                • Scroll to zoom<br>
+                • Select dimension to control rotation plane
+            </div>
+        </div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // Scene setup
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a2e);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(5, 5, 5);
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(5, 5, 5);
+        directionalLight.castShadow = true;
+        scene.add(directionalLight);
+
+        // 4D Hypercube vertices (16 vertices in 4D space)
+        function generateHypercubeVertices() {
+            const vertices = [];
+            for (let x = -1; x <= 1; x += 2) {
+                for (let y = -1; y <= 1; y += 2) {
+                    for (let z = -1; z <= 1; z += 2) {
+                        for (let w = -1; w <= 1; w += 2) {
+                            vertices.push([x, y, z, w]);
+                        }
+                    }
+                }
+            }
+            return vertices;
+        }
+
+        // Project 4D to 3D
+        function project4Dto3D(vertex4D, rotationMatrix) {
+            // Apply 4D rotation
+            const rotated = multiply4D(rotationMatrix, vertex4D);
+            
+            // Project to 3D (perspective projection from 4D)
+            const distance = 3; // Distance from 4D origin
+            const w = rotated[3];
+            const scale = distance / (distance - w * 0.5); // Perspective factor
+            
+            return [
+                rotated[0] * scale,
+                rotated[1] * scale,
+                rotated[2] * scale
+            ];
+        }
+
+        // 4D matrix multiplication
+        function multiply4D(matrix, vector) {
+            const result = [0, 0, 0, 0];
+            for (let i = 0; i < 4; i++) {
+                for (let j = 0; j < 4; j++) {
+                    result[i] += matrix[i * 4 + j] * vector[j];
+                }
+            }
+            return result;
+        }
+
+        // Create 4D rotation matrix
+        function create4DRotation(angle, plane1, plane2) {
+            const cos = Math.cos(angle);
+            const sin = Math.sin(angle);
+            const matrix = new Array(16).fill(0);
+            
+            // Identity matrix
+            for (let i = 0; i < 4; i++) {
+                matrix[i * 4 + i] = 1;
+            }
+            
+            // Apply rotation in the specified plane
+            matrix[plane1 * 4 + plane1] = cos;
+            matrix[plane1 * 4 + plane2] = -sin;
+            matrix[plane2 * 4 + plane1] = sin;
+            matrix[plane2 * 4 + plane2] = cos;
+            
+            return matrix;
+        }
+
+        // Hypercube edges (connect vertices that differ in exactly one coordinate)
+        function generateHypercubeEdges(vertices) {
+            const edges = [];
+            for (let i = 0; i < vertices.length; i++) {
+                for (let j = i + 1; j < vertices.length; j++) {
+                    let diff = 0;
+                    for (let k = 0; k < 4; k++) {
+                        if (vertices[i][k] !== vertices[j][k]) diff++;
+                    }
+                    if (diff === 1) {
+                        edges.push([i, j]);
+                    }
+                }
+            }
+            return edges;
+        }
+
+        const vertices4D = generateHypercubeVertices();
+        const edges = generateHypercubeEdges(vertices4D);
+
+        // Create geometry for hypercube
+        const geometry = new THREE.BufferGeometry();
+        const positions = [];
+        const colors = [];
+
+        // Rotation state
+        let rotationAngles = [0, 0, 0, 0]; // X-Y, X-Z, X-W, Y-Z
+        let activeDimension = 0;
+        let isDragging = false;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+
+        // Dimension button handlers
+        const dimButtons = document.querySelectorAll('.dim-btn');
+        dimButtons.forEach((btn, index) => {
+            btn.addEventListener('click', () => {
+                dimButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                activeDimension = index;
+            });
+        });
+
+        // Mouse controls
+        const mouseControls = {
+            onMouseDown: (event) => {
+                isDragging = true;
+                lastMouseX = event.clientX;
+                lastMouseY = event.clientY;
+            },
+            onMouseMove: (event) => {
+                if (!isDragging) return;
+                
+                const deltaX = event.clientX - lastMouseX;
+                const deltaY = event.clientY - lastMouseY;
+                
+                // Map to rotation angles based on active dimension
+                const rotationSpeed = 0.01;
+                const angleX = deltaX * rotationSpeed;
+                const angleY = deltaY * rotationSpeed;
+                
+                // Update rotation based on active dimension
+                if (activeDimension === 0) { // X-Y plane
+                    rotationAngles[0] += angleX;
+                } else if (activeDimension === 1) { // X-Z plane
+                    rotationAngles[1] += angleX;
+                } else if (activeDimension === 2) { // X-W plane
+                    rotationAngles[2] += angleX;
+                } else if (activeDimension === 3) { // Y-Z plane
+                    rotationAngles[3] += angleX;
+                }
+                
+                lastMouseX = event.clientX;
+                lastMouseY = event.clientY;
+            },
+            onMouseUp: () => {
+                isDragging = false;
+            }
+        };
+
+        renderer.domElement.addEventListener('mousedown', mouseControls.onMouseDown);
+        renderer.domElement.addEventListener('mousemove', mouseControls.onMouseMove);
+        renderer.domElement.addEventListener('mouseup', mouseControls.onMouseUp);
+        renderer.domElement.addEventListener('mouseleave', mouseControls.onMouseUp);
+
+        // Orbit controls for camera (zoom and general view)
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.enablePan = true;
+
+        // Update hypercube geometry
+        function updateHypercube() {
+            // Combine all rotations
+            let combinedMatrix = createIdentity4D();
+            
+            // Apply rotations in order
+            combinedMatrix = multiply4DMatrices(
+                create4DRotation(rotationAngles[0], 0, 1), // X-Y
+                combinedMatrix
+            );
+            combinedMatrix = multiply4DMatrices(
+                create4DRotation(rotationAngles[1], 0, 2), // X-Z
+                combinedMatrix
+            );
+            combinedMatrix = multiply4DMatrices(
+                create4DRotation(rotationAngles[2], 0, 3), // X-W
+                combinedMatrix
+            );
+            combinedMatrix = multiply4DMatrices(
+                create4DRotation(rotationAngles[3], 1, 2), // Y-Z
+                combinedMatrix
+            );
+
+            // Project vertices and create edges
+            positions.length = 0;
+            colors.length = 0;
+
+            const projectedVertices = vertices4D.map(v => project4Dto3D(v, combinedMatrix));
+
+            edges.forEach(edge => {
+                const v1 = projectedVertices[edge[0]];
+                const v2 = projectedVertices[edge[1]];
+                
+                positions.push(v1[0], v1[1], v1[2]);
+                positions.push(v2[0], v2[1], v2[2]);
+                
+                // Color gradient based on 4D position
+                const w1 = vertices4D[edge[0]][3];
+                const w2 = vertices4D[edge[1]][3];
+                const color1 = new THREE.Color().setHSL((w1 + 1) / 4, 0.8, 0.6);
+                const color2 = new THREE.Color().setHSL((w2 + 1) / 4, 0.8, 0.6);
+                
+                colors.push(color1.r, color1.g, color1.b);
+                colors.push(color2.r, color2.g, color2.b);
+            });
+
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            geometry.computeBoundingSphere();
+        }
+
+        // Helper functions
+        function createIdentity4D() {
+            const matrix = new Array(16).fill(0);
+            for (let i = 0; i < 4; i++) {
+                matrix[i * 4 + i] = 1;
+            }
+            return matrix;
+        }
+
+        function multiply4DMatrices(a, b) {
+            const result = new Array(16).fill(0);
+            for (let i = 0; i < 4; i++) {
+                for (let j = 0; j < 4; j++) {
+                    for (let k = 0; k < 4; k++) {
+                        result[i * 4 + j] += a[i * 4 + k] * b[k * 4 + j];
+                    }
+                }
+            }
+            return result;
+        }
+
+        // Create line material
+        const material = new THREE.LineBasicMaterial({
+            vertexColors: true,
+            linewidth: 2
+        });
+
+        const hypercube = new THREE.LineSegments(geometry, material);
+        scene.add(hypercube);
+
+        // Add vertices as spheres
+        const vertexGeometry = new THREE.SphereGeometry(0.1, 16, 16);
+        const vertexMaterial = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const vertices3D = [];
+
+        function updateVertices() {
+            // Remove old vertices
+            vertices3D.forEach(v => scene.remove(v));
+            vertices3D.length = 0;
+
+            // Combine rotations
+            let combinedMatrix = createIdentity4D();
+            combinedMatrix = multiply4DMatrices(create4DRotation(rotationAngles[0], 0, 1), combinedMatrix);
+            combinedMatrix = multiply4DMatrices(create4DRotation(rotationAngles[1], 0, 2), combinedMatrix);
+            combinedMatrix = multiply4DMatrices(create4DRotation(rotationAngles[2], 0, 3), combinedMatrix);
+            combinedMatrix = multiply4DMatrices(create4DRotation(rotationAngles[3], 1, 2), combinedMatrix);
+
+            const projectedVertices = vertices4D.map(v => project4Dto3D(v, combinedMatrix));
+
+            projectedVertices.forEach((v, i) => {
+                const sphere = new THREE.Mesh(vertexGeometry, vertexMaterial.clone());
+                sphere.position.set(v[0], v[1], v[2]);
+                const w = vertices4D[i][3];
+                sphere.material.color.setHSL((w + 1) / 4, 0.8, 0.6);
+                scene.add(sphere);
+                vertices3D.push(sphere);
+            });
+        }
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            updateHypercube();
+            updateVertices();
+            
+            controls.update();
+            renderer.render(scene, renderer);
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Start animation
+        animate();
+    </script>
+</body>
+</html>
