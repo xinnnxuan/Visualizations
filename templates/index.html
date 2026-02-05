@@ -75,7 +75,7 @@
 
         .dimension-buttons {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 8px;
         }
 
@@ -155,6 +155,8 @@
                     <button class="dim-btn" data-dim="1">X-Z</button>
                     <button class="dim-btn" data-dim="2">X-W</button>
                     <button class="dim-btn" data-dim="3">Y-Z</button>
+                    <button class="dim-btn" data-dim="4">Y-W</button>
+                    <button class="dim-btn" data-dim="5">Z-W</button>
                 </div>
             </div>
             <div class="action-buttons">
@@ -308,8 +310,8 @@
         const colors = [];
 
         // Rotation state
-        let rotationAngles = [0, 0, 0, 0]; // X-Y, X-Z, X-W, Y-Z
-        const initialRotationAngles = [0, 0, 0, 0]; // Store initial state for reset
+        let rotationAngles = [0, 0, 0, 0, 0, 0]; // X-Y, X-Z, X-W, Y-Z, Y-W, Z-W
+        const initialRotationAngles = [0, 0, 0, 0, 0, 0]; // Store initial state for reset
         let activeDimension = 0;
         let isDragging = false;
         let lastMouseX = 0;
@@ -352,6 +354,10 @@
                     rotationAngles[2] += angleX;
                 } else if (activeDimension === 3) { // Y-Z plane
                     rotationAngles[3] += angleX;
+                } else if (activeDimension === 4) { // Y-W plane
+                    rotationAngles[4] += angleX;
+                } else if (activeDimension === 5) { // Z-W plane
+                    rotationAngles[5] += angleX;
                 }
                 
                 lastMouseX = event.clientX;
@@ -395,6 +401,14 @@
                 create4DRotation(rotationAngles[3], 1, 2), // Y-Z
                 combinedMatrix
             );
+            combinedMatrix = multiply4DMatrices(
+                create4DRotation(rotationAngles[4], 1, 3), // Y-W
+                combinedMatrix
+            );
+            combinedMatrix = multiply4DMatrices(
+                create4DRotation(rotationAngles[5], 2, 3), // Z-W
+                combinedMatrix
+            );
 
             // Project vertices and create edges
             positions.length = 0;
@@ -420,9 +434,9 @@
             });
 
             if (positions.length > 0) {
-                geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-                geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-                geometry.computeBoundingSphere();
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            geometry.computeBoundingSphere();
                 console.log('Geometry updated with', positions.length / 3, 'vertices');
             } else {
                 console.error('No positions generated!');
@@ -478,6 +492,8 @@
             combinedMatrix = multiply4DMatrices(create4DRotation(rotationAngles[1], 0, 2), combinedMatrix);
             combinedMatrix = multiply4DMatrices(create4DRotation(rotationAngles[2], 0, 3), combinedMatrix);
             combinedMatrix = multiply4DMatrices(create4DRotation(rotationAngles[3], 1, 2), combinedMatrix);
+            combinedMatrix = multiply4DMatrices(create4DRotation(rotationAngles[4], 1, 3), combinedMatrix);
+            combinedMatrix = multiply4DMatrices(create4DRotation(rotationAngles[5], 2, 3), combinedMatrix);
 
             const projectedVertices = vertices4D.map(v => project4Dto3D(v, combinedMatrix));
 
@@ -538,7 +554,7 @@
             camera.lookAt(0, 0, 0);
             controls.reset();
         });
-        
+
         // Animation loop
         function animate() {
             requestAnimationFrame(animate);
