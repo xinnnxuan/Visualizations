@@ -87,7 +87,7 @@ export default function CityComparison({
             stroke="#ef4444"
             strokeDasharray="5 5"
             strokeWidth={2}
-            label={{ value: '30% threshold', position: 'topRight' }}
+            label={{ value: '30% threshold', position: 'top' }}
           />
           <Bar
             dataKey="rentBurden"
