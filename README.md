@@ -1,55 +1,46 @@
-# Interactive 4D Hypercube Visualization
+# Rent Burden Visualization
 
-An interactive web-based visualization of a 4-dimensional hypercube (tesseract) with rotation controls and dimension selection.
+An interactive data visualization showing how rent has risen faster than wages across major U.S. cities.
 
 ## Features
 
-- **Interactive 4D Hypercube**: Visualize a tesseract projected into 3D space
-- **Mouse Controls**: Click and drag to rotate the hypercube
-- **Dimension Selector**: Choose which dimension plane to rotate (X-Y, X-Z, X-W, Y-Z)
-- **Zoom Controls**: Scroll to zoom in/out
-- **Color-coded Vertices**: Vertices are color-coded based on their 4D position
+- **City Selection**: Choose from major metropolitan areas
+- **Income Percentile Slider**: See how rent burden affects different income levels (25th, 50th, 75th percentile)
+- **Animated Timeline**: Watch rent burden change over time from 2015 to 2024
+- **30% Threshold Highlight**: Visual indicator of the affordability threshold
+- **City Comparison**: Compare rent burden across multiple cities
 
 ## Local Development
 
 1. Install dependencies:
 ```bash
-pip install -r requirements.txt
+npm install
 ```
 
-2. Run the application:
+2. Run the development server:
 ```bash
-python app.py
+npm run dev
 ```
 
-3. Open your browser and navigate to `http://localhost:5000`
+3. Open [http://localhost:3000](http://localhost:3000) in your browser
 
 ## Deployment on Render
 
-1. Push your code to a Git repository (GitHub, GitLab, etc.)
+This project is configured for deployment on Render. The `render.yaml` file contains the deployment configuration.
 
-2. On Render.com:
-   - Create a new Web Service
-   - Connect your repository
-   - Render will automatically detect the `render.yaml` file
-   - Or manually set:
-     - **Build Command**: `pip install -r requirements.txt`
-     - **Start Command**: `gunicorn app:app`
-     - **Environment**: Python 3
+1. Push your code to a Git repository
+2. Connect your repository to Render
+3. Render will automatically detect the configuration and deploy
 
-3. Deploy!
+## Data Sources
 
-The application will be available at your Render-provided URL.
+- **Rent Data**: Zillow Observed Rent Index (ZORI)
+- **Income Data**: Estimated based on American Community Survey (ACS) median household income
 
-## Usage
+## Technology Stack
 
-- **Click and Drag**: Rotate the hypercube in the selected dimension plane
-- **Scroll**: Zoom in/out
-- **Dimension Buttons**: Select which rotation plane to control (X-Y, X-Z, X-W, Y-Z)
-
-## Technical Details
-
-- Built with Flask (Python backend)
-- Three.js for 3D rendering
-- 4D to 3D perspective projection
-- Real-time rotation matrix calculations
+- Next.js 14
+- React 18
+- Recharts for visualizations
+- Tailwind CSS for styling
+- TypeScript
