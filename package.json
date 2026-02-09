@@ -2,6 +2,9 @@
   "name": "rent-burden-visualization",
   "version": "1.0.0",
   "description": "Interactive rent burden visualization showing rent rising faster than wages",
+  "engines": {
+    "node": ">=20.0.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
