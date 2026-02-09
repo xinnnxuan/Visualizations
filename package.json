@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Interactive rent burden visualization showing rent rising faster than wages",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
   },
   "scripts": {
     "dev": "next dev",

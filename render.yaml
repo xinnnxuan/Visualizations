@@ -2,10 +2,10 @@ services:
   - type: web
     name: rent-burden-visualization
     env: node
+    plan: free
     buildCommand: npm install && npm run build
     startCommand: npm start
+    healthCheckPath: /
     envVars:
       - key: NODE_ENV
         value: production
-      - key: NODE_VERSION
-        value: 20.x
